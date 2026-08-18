@@ -1,0 +1,18 @@
+{
+  "name": "aivorah-db",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Schema, migrations and seeds for the Aivorah Supabase databases (dev / test / prod)",
+  "scripts": {
+    "migrate:dev": "node scripts/migrate.js dev",
+    "migrate:test": "node scripts/migrate.js test",
+    "migrate:prod": "node scripts/migrate.js prod --confirm-prod",
+    "seed:dev": "node scripts/seed.js dev",
+    "seed:test": "node scripts/seed.js test",
+    "compare": "node scripts/compare-schema.js",
+    "dump:prod": "node scripts/dump-schema.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
