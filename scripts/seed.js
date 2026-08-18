@@ -16,7 +16,10 @@ const seedFile = path.join(__dirname, '..', 'supabase', 'seed', `${envName}_seed
 (async () => {
   // The seed file itself guards on this setting, so a stray copy/paste into the
   // SQL editor of the wrong project fails closed rather than inserting rows.
-  const sql = `set local aivorah.allow_seed = 'yes';\n\n${readSqlWithIncludes(seedFile)}`;
+  // `set local` only takes effect inside a transaction block, so the whole
+  // seed runs as one explicit transaction rather than the API's default
+  // statement batch (where `set local` would silently be a no-op).
+  const sql = `begin;\nset local aivorah.allow_seed = 'yes';\n\n${readSqlWithIncludes(seedFile)}\ncommit;`;
 
   console.log(`Seeding ${target.label} (${target.ref}) from ${path.basename(seedFile)}`);
   await query(target.ref, sql);

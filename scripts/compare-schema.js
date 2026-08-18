@@ -1,6 +1,8 @@
 // Deep schema fingerprint comparison between Supabase projects
 const TOKEN = process.env.SUPABASE_ACCESS_TOKEN;
 const fs = require('fs');
+const lines = [];
+const log = (s = '') => { console.log(s); lines.push(s); };
 
 const PROJECTS = {
   PROD: process.env.PROD_REF,
@@ -41,6 +43,15 @@ const QUERIES = {
   extensions: `select extname as sig from pg_extension order by 1`,
   sequences: `select sequence_name as sig from information_schema.sequences where sequence_schema='public' order by 1`,
   buckets: `select id||' public='||public as sig from storage.buckets order by 1`,
+  views: `select table_name||' | '||md5(view_definition) as sig
+    from information_schema.views where table_schema='public' order by 1`,
+  triggers: `select c.relname||' | '||t.tgname||' | '||md5(pg_get_triggerdef(t.oid)) as sig
+    from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace
+    where n.nspname='public' and not t.tgisinternal order by 1`,
+  domains: `select t.typname||' | '||pg_catalog.format_type(t.typbasetype,t.typtypmod)
+      ||' notnull='||t.typnotnull||' default='||coalesce(t.typdefault,'-') as sig
+    from pg_type t join pg_namespace n on n.oid=t.typnamespace
+    where n.nspname='public' and t.typtype='d' order by 1`,
   grants: `select sig from (
       select table_name||' | '||grantee||' | '||string_agg(privilege_type,',' order by privilege_type) as sig
       from information_schema.role_table_grants
@@ -73,21 +84,21 @@ async function q(ref, sql) {
 
   let allMatch = true;
   for (const target of ['DEV', 'TEST']) {
-    console.log(`\n===== PROD vs ${target} =====`);
+    log(`\n===== PROD vs ${target} =====`);
     for (const k of Object.keys(QUERIES)) {
       const a = snap.PROD[k], b = snap[target][k];
       const setB = new Set(b), setA = new Set(a);
       const missing = a.filter((x) => !setB.has(x));
       const extra = b.filter((x) => !setA.has(x));
       if (!missing.length && !extra.length) {
-        console.log(`  MATCH  ${k.padEnd(12)} (${a.length})`);
+        log(`  MATCH  ${k.padEnd(12)} (${a.length})`);
       } else {
         allMatch = false;
-        console.log(`  DIFF   ${k.padEnd(12)} prod=${a.length} ${target.toLowerCase()}=${b.length}`);
-        missing.slice(0, 8).forEach((m) => console.log(`     missing in ${target}: ${m.slice(0, 160)}`));
-        extra.slice(0, 8).forEach((m) => console.log(`     extra   in ${target}: ${m.slice(0, 160)}`));
-        if (missing.length > 8) console.log(`     ...+${missing.length - 8} more missing`);
-        if (extra.length > 8) console.log(`     ...+${extra.length - 8} more extra`);
+        log(`  DIFF   ${k.padEnd(12)} prod=${a.length} ${target.toLowerCase()}=${b.length}`);
+        missing.slice(0, 8).forEach((m) => log(`     missing in ${target}: ${m.slice(0, 160)}`));
+        extra.slice(0, 8).forEach((m) => log(`     extra   in ${target}: ${m.slice(0, 160)}`));
+        if (missing.length > 8) log(`     ...+${missing.length - 8} more missing`);
+        if (extra.length > 8) log(`     ...+${extra.length - 8} more extra`);
       }
     }
   }
@@ -95,17 +106,17 @@ async function q(ref, sql) {
   // Row counts — confirm no prod data leaked into dev/test
   // Dev/test should hold only seeded rows (tens), never a production-sized dataset.
   // A count in the thousands here means production data has leaked in.
-  console.log('\n===== ROW COUNTS =====');
+  log('\n===== ROW COUNTS =====');
   const rowSql = `select coalesce(sum(n_live_tup),0)::text as sig from pg_stat_user_tables where schemaname='public'`;
   for (const [name, ref] of Object.entries(PROJECTS)) {
-    console.log(`  ${name.padEnd(5)} approx rows in public: ${(await q(ref, rowSql))[0]}`);
+    log(`  ${name.padEnd(5)} approx rows in public: ${(await q(ref, rowSql))[0]}`);
   }
   const authSql = `select count(*)::text as sig from auth.users`;
   for (const [name, ref] of Object.entries(PROJECTS)) {
-    console.log(`  ${name.padEnd(5)} auth.users: ${(await q(ref, authSql))[0]}`);
+    log(`  ${name.padEnd(5)} auth.users: ${(await q(ref, authSql))[0]}`);
   }
 
-  console.log(`\n===== VERDICT: ${allMatch ? 'SCHEMA IDENTICAL' : 'DIFFERENCES FOUND'} =====`);
-  fs.writeFileSync('schema-compare-report.txt', 'see stdout');
+  log(`\n===== VERDICT: ${allMatch ? 'SCHEMA IDENTICAL' : 'DIFFERENCES FOUND'} =====`);
+  fs.writeFileSync('schema-compare-report.txt', lines.join('\n') + '\n');
   if (!allMatch) process.exit(1);
 })().catch((e) => { console.error('FAILED:', e.message); process.exit(1); });

@@ -34,12 +34,15 @@ async function query(ref, sql) {
 }
 
 // Resolves "-- @include other.sql" directives relative to the file's own directory.
+// `seen` tracks only the current include chain (ancestors), not every file
+// visited anywhere in the tree, so a diamond include — two siblings both
+// pulling in the same shared file — is not mistaken for a cycle.
 function readSqlWithIncludes(file, seen = new Set()) {
   const abs = path.resolve(file);
   if (seen.has(abs)) fail(`Circular @include detected at ${abs}`);
-  seen.add(abs);
+  const withSelf = new Set(seen).add(abs);
   return fs.readFileSync(abs, 'utf8').replace(/^--\s*@include\s+(\S+)\s*$/gm, (_, inc) =>
-    readSqlWithIncludes(path.join(path.dirname(abs), inc), seen)
+    readSqlWithIncludes(path.join(path.dirname(abs), inc), withSelf)
   );
 }
 

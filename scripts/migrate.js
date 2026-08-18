@@ -42,7 +42,9 @@ const dir = path.join(__dirname, '..', 'supabase', 'migrations');
 
   for (const file of files) {
     const version = file.replace(/\.sql$/, '');
-    const sql = fs.readFileSync(path.join(dir, file), 'utf8');
+    // Normalize CRLF -> LF before hashing/applying so a Windows checkout and a
+    // Unix checkout of the identical file produce the identical checksum.
+    const sql = fs.readFileSync(path.join(dir, file), 'utf8').replace(/\r\n/g, '\n');
     const checksum = crypto.createHash('sha256').update(sql).digest('hex');
 
     if (applied[version]) {
