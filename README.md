@@ -29,6 +29,34 @@ All three are in region `ap-northeast-1` (Tokyo).
 cp .env.example .env    # then paste your access token into .env
 ```
 
+## CI setup (one-time, manual — not done by this repo)
+
+`.github/workflows/ci.yml` runs `migrate.js` + `compare-schema.js` on any PR
+touching `supabase/migrations/**`, so schema drift is caught before merge
+instead of discovered on Prod.
+
+It needs 4 repo secrets that are **not** set — `SUPABASE_ACCESS_TOKEN` is a
+high-privilege token (can create/delete Supabase projects), so adding it to
+CI is a deliberate decision for you to make, not something committed here.
+
+Add them yourself, once, via the GitHub CLI (values come from your own
+`.env`, never paste them into a file that gets committed):
+
+```bash
+gh secret set SUPABASE_ACCESS_TOKEN --repo aivorah24/aivorah-db --body "sbp_..."
+gh secret set DEV_REF  --repo aivorah24/aivorah-db --body "ernsrofvmszhmfhxeehx"
+gh secret set TEST_REF --repo aivorah24/aivorah-db --body "vgqrrseziwnljkencqpy"
+gh secret set PROD_REF --repo aivorah24/aivorah-db --body "jwlepxmclbkrmfzrumch"
+```
+
+Until these are set, the CI job fails visibly on any migration PR (it errors
+asking for the missing token) — that's intentional; it does not silently
+skip or pass.
+
+**Before adding the token**, consider generating a fresh one and rotating out
+any token that has appeared in chat/terminal history during setup —
+https://supabase.com/dashboard/account/tokens.
+
 Node 18+ is required (uses the built-in `fetch`). There are no dependencies to install.
 
 ## Usage
