@@ -1,0 +1,39 @@
+name: Schema Validation
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'scripts/**'
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Apply migrations to dev and test
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          DEV_REF: ${{ secrets.DEV_REF }}
+          TEST_REF: ${{ secrets.TEST_REF }}
+          PROD_REF: ${{ secrets.PROD_REF }}
+        run: |
+          node scripts/migrate.js dev
+          node scripts/migrate.js test
+      - name: Compare schema against prod
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          DEV_REF: ${{ secrets.DEV_REF }}
+          TEST_REF: ${{ secrets.TEST_REF }}
+          PROD_REF: ${{ secrets.PROD_REF }}
+        run: node scripts/compare-schema.js
+
+# Requires 4 repo secrets before this can run: SUPABASE_ACCESS_TOKEN, DEV_REF,
+# TEST_REF, PROD_REF. Not set by this PR — SUPABASE_ACCESS_TOKEN is a
+# high-privilege token (can create/delete Supabase projects), so adding it as
+# a CI secret is a deliberate decision for you to make, not something to do
+# silently. Until it's added, this workflow will fail on every PR that
+# touches migrations — visibly, not silently green.
