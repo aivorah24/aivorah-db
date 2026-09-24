@@ -10,9 +10,13 @@
     "seed:dev": "node scripts/seed.js dev",
     "seed:test": "node scripts/seed.js test",
     "compare": "node scripts/compare-schema.js",
-    "dump:prod": "node scripts/dump-schema.js"
+    "dump:prod": "node scripts/dump-schema.js",
+    "test": "node --test tests/*.test.js"
   },
   "engines": {
     "node": ">=18"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.3.16"
   }
 }
