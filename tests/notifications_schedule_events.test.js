@@ -81,6 +81,15 @@ describe('0010 schedule event notifications', () => {
     await assert.rejects(notify(db, scheduleEvent({ entity_type: 'calendar' })), /notifications_entity_type_check/);
   });
 
+  test('leaves exactly one check each on type and entity_type', async () => {
+    const db = await freshDb();
+    await db.exec(migration('0010_notifications_schedule_events.sql'));
+    const { rows } = await db.query(`select pg_get_constraintdef(oid) d from pg_constraint
+      where conrelid = 'notifications'::regclass and contype = 'c'`);
+    assert.equal(rows.filter(r => /\(type = ANY/.test(r.d)).length, 1);
+    assert.equal(rows.filter(r => /\(entity_type = ANY/.test(r.d)).length, 1);
+  });
+
   test('is re-runnable', async () => {
     const db = await freshDb();
     await db.exec(migration('0010_notifications_schedule_events.sql'));
