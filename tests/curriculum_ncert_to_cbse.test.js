@@ -1,4 +1,4 @@
-// Runs migration 0014 against real Postgres (PGlite) on a minimal stub of the tables it rewrites.
+// Runs migration 0015 against real Postgres (PGlite) on a minimal stub of the tables it rewrites.
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
@@ -6,7 +6,7 @@ const path = require('path');
 const { PGlite } = require('@electric-sql/pglite');
 
 const MIGRATION = fs.readFileSync(
-  path.join(__dirname, '..', 'supabase', 'migrations', '0014_curriculum_ncert_to_cbse.sql'), 'utf8');
+  path.join(__dirname, '..', 'supabase', 'migrations', '0015_curriculum_ncert_to_cbse.sql'), 'utf8');
 
 const STUB = `
   create table users (id serial primary key, email text unique, role text, curriculum text);
@@ -58,7 +58,7 @@ async function migratedDb() {
 
 const col = async (db, sql) => (await db.query(sql)).rows.map((r) => Object.values(r)[0]);
 
-describe('0014_curriculum_ncert_to_cbse', () => {
+describe('0015_curriculum_ncert_to_cbse', () => {
   test('users/schools/syllabus_chapters: NCERT in any case/spacing becomes CBSE, others untouched', async () => {
     const db = await migratedDb();
     assert.deepEqual(await col(db, 'select curriculum from users order by id'),
