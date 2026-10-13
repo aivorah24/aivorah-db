@@ -1,14 +1,15 @@
 -- Notification V2: B2B class posts (aivorah-school-admin-service class portfolio).
+-- Keeps every type from 0010 + 0012 (account_updated/user) and adds class_post.
 -- Widens the type/entity checks and lets producers skip recipients who turned the
 -- category off (p_event.exclude_emails). notify_event is otherwise unchanged from 0006.
 
 alter table "public"."notifications" drop constraint if exists "notifications_type_check";
 alter table "public"."notifications" add constraint "notifications_type_check"
-  check (type in ('challenge_assigned', 'assignment_assigned', 'challenge_due', 'assignment_due', 'event_scheduled', 'class_post'));
+  check (type in ('challenge_assigned', 'assignment_assigned', 'challenge_due', 'assignment_due', 'event_scheduled', 'account_updated', 'class_post'));
 
 alter table "public"."notifications" drop constraint if exists "notifications_entity_type_check";
 alter table "public"."notifications" add constraint "notifications_entity_type_check"
-  check (entity_type in ('challenge_assignment', 'assignment', 'schedule_event', 'class_post'));
+  check (entity_type in ('challenge_assignment', 'assignment', 'schedule_event', 'user', 'class_post'));
 
 -- p_event: as 0006, plus exclude_emails?: text[] (students and/or parents to skip).
 create or replace function public.notify_event(p_event jsonb)

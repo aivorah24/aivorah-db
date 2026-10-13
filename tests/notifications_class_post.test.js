@@ -1,4 +1,4 @@
-// Runs migrations 0006 + 0010 + 0011 on PGlite: class posts fan out to students + parents, honouring opt-outs.
+// Runs migrations 0006 + 0010 + 0014 on PGlite: class posts fan out to students + parents, honouring opt-outs.
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
@@ -34,7 +34,7 @@ async function freshDb() {
   `);
   await db.exec(migration('0006_notifications_v2.sql'));
   await db.exec(migration('0010_notifications_schedule_events.sql'));
-  await db.exec(migration('0011_notifications_class_post.sql'));
+  await db.exec(migration('0014_notifications_class_post.sql'));
   return db;
 }
 
@@ -51,7 +51,7 @@ const classPost = (overrides = {}) => ({
   ...overrides,
 });
 
-describe('0011 class post notifications', () => {
+describe('0014 class post notifications', () => {
   test('every student in the class and each linked parent (per child) gets one row', async () => {
     const db = await freshDb();
     const r = await notify(db, classPost());
@@ -88,7 +88,7 @@ describe('0011 class post notifications', () => {
 
   test('is re-runnable and leaves one check each', async () => {
     const db = await freshDb();
-    await db.exec(migration('0011_notifications_class_post.sql'));
+    await db.exec(migration('0014_notifications_class_post.sql'));
     const { rows } = await db.query(`select pg_get_constraintdef(oid) d from pg_constraint
       where conrelid = 'notifications'::regclass and contype = 'c'`);
     assert.equal(rows.filter(r => /\(type = ANY/.test(r.d)).length, 1);
