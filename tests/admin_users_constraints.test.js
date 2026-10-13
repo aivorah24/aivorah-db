@@ -1,4 +1,4 @@
-// Runs 0011 + 0012 on PGlite: 'blocked' users and 'account_updated' notifications are accepted.
+// Runs 0011-0013 on PGlite: 'blocked' users and 'account_updated' notifications (any role) are accepted.
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
@@ -25,7 +25,8 @@ async function freshDb() {
   await db.exec(STUB);
   await db.exec(`insert into users (id, email, name, role) values ('${TEACHER}', 't@x.com', 'T', 'teacher')`);
   for (const m of ['0006_notifications_v2.sql', '0010_notifications_schedule_events.sql',
-    '0011_users_status_blocked.sql', '0012_notifications_account_updated.sql']) await db.exec(migration(m));
+    '0011_users_status_blocked.sql', '0012_notifications_account_updated.sql',
+    '0013_notifications_account_updated_any_role.sql']) await db.exec(migration(m));
   return db;
 }
 
@@ -73,5 +74,35 @@ describe('0012 account_updated notifications', () => {
       where conrelid = 'notifications'::regclass and contype = 'c'`);
     assert.equal(rows.filter(r => /\(type = ANY/.test(r.d)).length, 1);
     assert.equal(rows.filter(r => /\(entity_type = ANY/.test(r.d)).length, 1);
+  });
+});
+
+const PARENT = '22222222-2222-2222-2222-222222222222';
+const parentInsert = (db, type, entityType, key) => db.query(
+  `insert into notifications (recipient_id, recipient_role, type, entity_type, entity_id, title, event_key)
+   values ($1::uuid, 'parent', $2, $3, $1::text, 'x', $4)`, [PARENT, type, entityType, key]);
+const addParent = db => db.exec(`insert into users (id, email, name, role) values ('${PARENT}', 'p@x.com', 'P', 'parent')`);
+
+describe('0013 account_updated for parents', () => {
+  test('parent account_updated without child_id is accepted', async () => {
+    const db = await freshDb();
+    await addParent(db);
+    await parentInsert(db, 'account_updated', 'user', 'account_updated:user:1');
+    const { rows } = await db.query(`select child_id from notifications where recipient_id = $1`, [PARENT]);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].child_id, null);
+  });
+
+  test('other parent notifications still need child_id', async () => {
+    const db = await freshDb();
+    await addParent(db);
+    await assert.rejects(parentInsert(db, 'assignment_assigned', 'assignment', 'k1'), /notifications_parent_has_child/);
+  });
+
+  test('is re-runnable and leaves one parent_has_child check', async () => {
+    const db = await freshDb();
+    await db.exec(migration('0013_notifications_account_updated_any_role.sql'));
+    const { rows } = await db.query(`select 1 from pg_constraint where conname = 'notifications_parent_has_child'`);
+    assert.equal(rows.length, 1);
   });
 });
