@@ -7,13 +7,17 @@ belongs to none of them individually — it lives here.
 
 ## Environments
 
-| Env  | Project        | Ref                    | Plan | Purpose |
-|------|----------------|------------------------|------|---------|
-| Dev  | `aivorah-dev`  | `ernsrofvmszhmfhxeehx` | Free | Scratch. Wipe and reseed freely. |
-| Test | `aivorah-test` | `vgqrrseziwnljkencqpy` | Free | QA and the `aivorah-e2e-tests` suite. Schema mirrors prod exactly. |
-| Prod | `aivorah-prod` | `jwlepxmclbkrmfzrumch` | Pro  | Real users. Real data. |
+| Env  | Project   | Ref                    | Region | Purpose |
+|------|-----------|------------------------|--------|---------|
+| Dev  | `Dev DB`  | `evlqkcozespsfrnuhevf` | ap-southeast-2 | Development. Free plan: pauses after a week idle (resume in the dashboard). |
+| Test | `Test DB` | `xmwzifxlpmgsrxgxsgan` | ap-southeast-1 | **Live today:** every Render service and real pilot users use this project. |
+| Prod | `aivorah-prod` | `jwlepxmclbkrmfzrumch` | — | Future production. No service uses it yet. |
 
-All three are in region `ap-northeast-1` (Tokyo).
+## Migration status
+
+Checked 2026-11-03: **Dev and Test both have all 22 migrations applied and recorded** in `public.schema_migrations`, with matching checksums. `migrate.js dev` and `migrate.js test` report "already up to date".
+
+Some numbers are used twice (`0008_*`, `0009_*`, `0017_*`). That is intentional and safe: the ledger key is the full file name. Never rename an applied file. The next migration is **`0020_…`**.
 
 ## Rules
 
