@@ -17,7 +17,7 @@ belongs to none of them individually — it lives here.
 
 Checked 2026-11-03: **Dev and Test both have all 22 migrations applied and recorded** in `public.schema_migrations`, with matching checksums. `migrate.js dev` and `migrate.js test` report "already up to date".
 
-Some numbers are used twice (`0008_*`, `0009_*`, `0017_*`). That is intentional and safe: the ledger key is the full file name. Never rename an applied file. The next migration is **`0020_…`**.
+Some numbers are used twice (`0008_*`, `0009_*`, `0017_*`). That is intentional and safe: the ledger key is the full file name. Never rename an applied file. The next migration is **`0021_…`**.
 
 ## Rules
 
